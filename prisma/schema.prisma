@@ -1,0 +1,154 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model UIFeedback {
+  id                String           @id @default(cuid())
+  // User Information
+  userName          String?
+  userEmail         String?
+  userRole          String?          // e.g., "Developer", "Designer", "Product Manager", "End User"
+  
+  // Feedback Context
+  pageUrl           String?          // URL where feedback was given
+  componentName     String?          // Specific UI component being reviewed
+  browserInfo       String?          // Browser and version info
+  deviceType        DeviceType?      // Mobile, Desktop, Tablet
+  screenResolution  String?          // e.g., "1920x1080"
+  
+  // Feedback Content
+  feedbackType      FeedbackType     // Bug, Suggestion, Compliment, etc.
+  severity          Severity?        // Critical, High, Medium, Low
+  title             String           // Brief title of the feedback
+  description       String           // Detailed feedback description
+  stepsToReproduce  String?          // For bugs - steps to reproduce
+  expectedBehavior  String?          // What should happen
+  actualBehavior    String?          // What actually happens
+  
+  // Ratings (1-5 scale)
+  usabilityRating   Int?             // How easy to use (1-5)
+  designRating      Int?             // Visual design rating (1-5)
+  performanceRating Int?             // Performance rating (1-5)
+  overallRating     Int?             // Overall satisfaction (1-5)
+  
+  // Additional Context
+  tags              String[]         // Tags for categorization
+  priority          Priority?        // Priority level
+  attachmentUrls    String[]         // URLs to screenshots/files
+  
+  // Status and Workflow
+  status            FeedbackStatus   @default(OPEN)
+  assignedTo        String?          // Who is handling this feedback
+  resolution        String?          // How it was resolved
+  resolvedAt        DateTime?        // When it was resolved
+  
+  // Metadata
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  
+  // Relations
+  responses         FeedbackResponse[]
+  votes             FeedbackVote[]
+
+  @@map("ui_feedback")
+}
+
+model FeedbackResponse {
+  id          String     @id @default(cuid())
+  feedbackId  String
+  feedback    UIFeedback @relation(fields: [feedbackId], references: [id], onDelete: Cascade)
+  
+  authorName  String?
+  authorEmail String?
+  authorRole  String?
+  response    String
+  isInternal  Boolean    @default(false) // Internal team response vs public response
+  
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  @@map("feedback_responses")
+}
+
+model FeedbackVote {
+  id         String     @id @default(cuid())
+  feedbackId String
+  feedback   UIFeedback @relation(fields: [feedbackId], references: [id], onDelete: Cascade)
+  
+  voterEmail String?
+  voteType   VoteType   // UPVOTE, DOWNVOTE
+  
+  createdAt  DateTime   @default(now())
+  
+  @@unique([feedbackId, voterEmail])
+  @@map("feedback_votes")
+}
+
+enum FeedbackType {
+  BUG
+  FEATURE_REQUEST
+  IMPROVEMENT
+  COMPLIMENT
+  QUESTION
+  ACCESSIBILITY
+  PERFORMANCE
+  DESIGN
+  USABILITY
+  OTHER
+}
+
+enum Severity {
+  CRITICAL
+  HIGH
+  MEDIUM
+  LOW
+}
+
+enum Priority {
+  URGENT
+  HIGH
+  MEDIUM
+  LOW
+}
+
+enum FeedbackStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+  DUPLICATE
+  WONT_FIX
+}
+
+enum DeviceType {
+  DESKTOP
+  MOBILE
+  TABLET
+}
+
+enum VoteType {
+  UPVOTE
+  DOWNVOTE
+}
+
+model Feedback {
+  id          String   @id @default(cuid())
+  name        String?
+  email       String?
+  subject     String
+  message     String
+  rating      Int?     // 1-5 star rating
+  status      String   @default("open") // open, in-progress, resolved
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("feedback")
+}
