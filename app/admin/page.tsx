@@ -7,110 +7,115 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
-import { CalendarIcon, FilterIcon, XIcon } from "lucide-react";
+import { FilterIcon, XIcon, Star } from "lucide-react";
 import Link from "next/link";
 import Header from "../header";
 
-interface Registration {
+interface ServiceFeedback {
   id: string;
-  name: string;
-  companyName: string;
-  jobTitle: string;
-  mobileNumber: string;
-  officePhone?: string;
-  email: string;
-  website?: string;
-  officeAddress: string;
-  country: string;
-  industry: string;
-  sourceEvent: string;
-  followUpDate?: string;
-  followUp: boolean;
-  comment?: string;
+  customerName?: string;
+  companyName?: string;
+  contactInfo?: string;
+  serviceDate: string;
+  serviceType: string[];
+  serviceTypeOther?: string;
+  
+  // Service Quality Ratings
+  easeOfOrdering: number;
+  orderProcessingAccuracy: number;
+  orderChannelKnowledge: number;
+  serviceTimeliness: number;
+  orderAccuracy: number;
+  productQuality: number;
+  quantityAccuracy: number;
+  staffProfessionalism: number;
+  responsiveness: number;
+  overallSatisfaction: number;
+  priceCompetitiveness: number;
+  stockAvailability: number;
+  technicalInstruction: number;
+  
+  // Open-ended responses
+  mostLiked?: string;
+  overallExperience?: string;
+  expectationsMet?: string;
+  improvementAreas?: string;
+  issuesExperienced?: string;
+  wouldRecommend?: string;
+  
+  // Future expectations
+  additionalServices?: string;
+  futureExpectations?: string;
+  serviceQualityRecommendations?: string;
+  
+  // Follow-up
+  followUpRequested: boolean;
+  preferredContactMethod?: string;
+  preferredContactOther?: string;
+  
+  submissionDate: string;
   createdAt: string;
   updatedAt: string;
 }
 
 interface Filters {
   search: string;
-  industry: string;
-  country: string;
+  serviceType: string;
   followUp: string;
   dateFrom: string;
   dateTo: string;
-  sourceEvent: string;
+  overallSatisfaction: string;
 }
 
-const industryOptions = [
-  "Agriculture & Farming",
-  "Automotive",
-  "Banking & Finance",
-  "Construction & Real Estate",
-  "Coffee Import And Export",
-  "Consulting Import",
-  "Education",
-  "Energy & Utilities",
-  "Food & Beverage",
-  "Government & Public Sector",
-  "Healthcare & Medical",
-  "Hospitality & Tourism",
-  "Information Technology",
-  "Insurance",
-  "Legal Services",
-  "Manufacturing",
-  "Media & Entertainment",
-  "Non-Profit Organization",
-  "Pharmaceutical",
-  "Retail & E-commerce",
-  "Telecommunications",
-  "Transportation & Logistics",
-  "Other"
+const serviceTypeOptions = [
+  { value: "fuel-delivery", label: "Fuel Delivery" },
+  { value: "lubricant-supply", label: "Lubricant Supply" },
+  { value: "technical-support", label: "Technical Support" },
+  { value: "other", label: "Other" }
 ];
 
 export default function AdminPage() {
-  const [registrations, setRegistrations] = useState<Registration[]>([]);
-  const [filteredRegistrations, setFilteredRegistrations] = useState<Registration[]>([]);
+  const [feedbacks, setFeedbacks] = useState<ServiceFeedback[]>([]);
+  const [filteredFeedbacks, setFilteredFeedbacks] = useState<ServiceFeedback[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   
   const [filters, setFilters] = useState<Filters>({
     search: "",
-    industry: "",
-    country: "",
+    serviceType: "",
     followUp: "",
     dateFrom: "",
     dateTo: "",
-    sourceEvent: "",
+    overallSatisfaction: "",
   });
 
   // Get unique values for filter options
-  const [uniqueCountries, setUniqueCountries] = useState<string[]>([]);
-  const [uniqueSourceEvents, setUniqueSourceEvents] = useState<string[]>([]);
+  const [uniqueServiceTypes, setUniqueServiceTypes] = useState<string[]>([]);
 
   useEffect(() => {
-    fetchRegistrations();
+    fetchFeedbacks();
   }, []);
 
   useEffect(() => {
     applyFilters();
-  }, [registrations, filters]);
+  }, [feedbacks, filters]);
 
-  const fetchRegistrations = async () => {
+  const fetchFeedbacks = async () => {
     try {
-      const response = await fetch("/api/registration");
+      const response = await fetch("/api/feedback");
       if (!response.ok) {
-        throw new Error("Failed to fetch registrations");
+        throw new Error("Failed to fetch feedback");
       }
       const data = await response.json();
-      setRegistrations(data);
+      
+      // The feedback API returns an object with uiFeedback and serviceFeedback
+      const feedbackData = data.serviceFeedback || [];
+      setFeedbacks(feedbackData);
       
       // Extract unique values for filters
-      const countries = [...new Set(data.map((reg: Registration) => reg.country))].sort() as string[];
-      const sources = [...new Set(data.map((reg: Registration) => reg.sourceEvent))].sort() as string[];
-      setUniqueCountries(countries);
-      setUniqueSourceEvents(sources);
+      const serviceTypes = [...new Set(feedbackData.flatMap((feedback: ServiceFeedback) => feedback.serviceType).filter(Boolean))].sort() as string[];
+      setUniqueServiceTypes(serviceTypes);
       
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred");
@@ -120,53 +125,53 @@ export default function AdminPage() {
   };
 
   const applyFilters = () => {
-    let filtered = [...registrations];
+    if (!Array.isArray(feedbacks)) {
+      setFilteredFeedbacks([]);
+      return;
+    }
+    
+    let filtered = [...feedbacks];
 
-    // Search filter (name, email, company)
+    // Search filter (name, company, contact)
     if (filters.search) {
       const searchLower = filters.search.toLowerCase();
-      filtered = filtered.filter(reg => 
-        reg.name.toLowerCase().includes(searchLower) ||
-        reg.email.toLowerCase().includes(searchLower) ||
-        reg.companyName.toLowerCase().includes(searchLower) ||
-        reg.jobTitle.toLowerCase().includes(searchLower)
+      filtered = filtered.filter(feedback => 
+        (feedback.customerName && feedback.customerName.toLowerCase().includes(searchLower)) ||
+        (feedback.companyName && feedback.companyName.toLowerCase().includes(searchLower)) ||
+        (feedback.contactInfo && feedback.contactInfo.toLowerCase().includes(searchLower))
       );
     }
 
-    // Industry filter
-    if (filters.industry && filters.industry !== "all") {
-      filtered = filtered.filter(reg => reg.industry === filters.industry);
-    }
-
-    // Country filter
-    if (filters.country && filters.country !== "all") {
-      filtered = filtered.filter(reg => reg.country === filters.country);
+    // Service Type filter
+    if (filters.serviceType && filters.serviceType !== "all") {
+      filtered = filtered.filter(feedback => feedback.serviceType.includes(filters.serviceType));
     }
 
     // Follow-up filter
     if (filters.followUp && filters.followUp !== "all") {
       const followUpValue = filters.followUp === "true";
-      filtered = filtered.filter(reg => reg.followUp === followUpValue);
+      filtered = filtered.filter(feedback => feedback.followUpRequested === followUpValue);
     }
 
-    // Source/Event filter
-    if (filters.sourceEvent && filters.sourceEvent !== "all") {
-      filtered = filtered.filter(reg => reg.sourceEvent === filters.sourceEvent);
+    // Overall Satisfaction filter
+    if (filters.overallSatisfaction && filters.overallSatisfaction !== "all") {
+      const satisfactionValue = parseInt(filters.overallSatisfaction);
+      filtered = filtered.filter(feedback => feedback.overallSatisfaction === satisfactionValue);
     }
 
     // Date range filter
     if (filters.dateFrom) {
       const fromDate = new Date(filters.dateFrom);
-      filtered = filtered.filter(reg => new Date(reg.createdAt) >= fromDate);
+      filtered = filtered.filter(feedback => new Date(feedback.createdAt) >= fromDate);
     }
 
     if (filters.dateTo) {
       const toDate = new Date(filters.dateTo);
       toDate.setHours(23, 59, 59, 999); // End of day
-      filtered = filtered.filter(reg => new Date(reg.createdAt) <= toDate);
+      filtered = filtered.filter(feedback => new Date(feedback.createdAt) <= toDate);
     }
 
-    setFilteredRegistrations(filtered);
+    setFilteredFeedbacks(filtered);
   };
 
   const handleFilterChange = (key: keyof Filters, value: string) => {
@@ -176,12 +181,11 @@ export default function AdminPage() {
   const clearFilters = () => {
     setFilters({
       search: "",
-      industry: "",
-      country: "",
+      serviceType: "",
       followUp: "",
       dateFrom: "",
       dateTo: "",
-      sourceEvent: "",
+      overallSatisfaction: "",
     });
   };
 
@@ -197,13 +201,29 @@ export default function AdminPage() {
     });
   };
 
+  const renderStars = (rating: number) => {
+    return (
+      <div className="flex items-center gap-1">
+        {[1, 2, 3, 4, 5].map((star) => (
+          <Star
+            key={star}
+            className={`h-4 w-4 ${
+              star <= rating ? "fill-yellow-400 text-yellow-400" : "text-gray-300"
+            }`}
+          />
+        ))}
+        <span className="ml-1 text-sm text-muted-foreground">({rating}/5)</span>
+      </div>
+    );
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-zinc-50 font-sans dark:bg-black">
         <Header />
         <div className="container mx-auto p-4">
           <div className="flex items-center justify-center h-64">
-            <div className="text-lg">Loading registrations...</div>
+            <div className="text-lg">Loading service feedback...</div>
           </div>
         </div>
       </div>
@@ -221,7 +241,7 @@ export default function AdminPage() {
             </CardHeader>
             <CardContent>
               <p>{error}</p>
-              <Button onClick={fetchRegistrations} className="mt-4">
+              <Button onClick={fetchFeedbacks} className="mt-4">
                 Try Again
               </Button>
             </CardContent>
@@ -255,62 +275,44 @@ export default function AdminPage() {
               <Label htmlFor="search">Search</Label>
               <Input
                 id="search"
-                placeholder="Search by name, email, company..."
+                placeholder="Search by name, company, contact..."
                 value={filters.search}
                 onChange={(e) => handleFilterChange("search", e.target.value)}
               />
             </div>
 
-            {/* Industry Filter */}
+            {/* Service Type Filter */}
             <div className="space-y-2">
-              <Label>Industry</Label>
-              <Select value={filters.industry || "all"} onValueChange={(value) => handleFilterChange("industry", value === "all" ? "" : value)}>
+              <Label>Service Type</Label>
+              <Select value={filters.serviceType || "all"} onValueChange={(value) => handleFilterChange("serviceType", value === "all" ? "" : value)}>
                 <SelectTrigger>
-                  <SelectValue placeholder="All Industries" />
+                  <SelectValue placeholder="All Service Types" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Industries</SelectItem>
-                  {industryOptions.map((industry) => (
-                    <SelectItem key={industry} value={industry}>
-                      {industry}
+                  <SelectItem value="all">All Service Types</SelectItem>
+                  {serviceTypeOptions.map((serviceType) => (
+                    <SelectItem key={serviceType.value} value={serviceType.value}>
+                      {serviceType.label}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
 
-            {/* Country Filter */}
+            {/* Overall Satisfaction Filter */}
             <div className="space-y-2">
-              <Label>Country</Label>
-              <Select value={filters.country || "all"} onValueChange={(value) => handleFilterChange("country", value === "all" ? "" : value)}>
+              <Label>Overall Satisfaction</Label>
+              <Select value={filters.overallSatisfaction || "all"} onValueChange={(value) => handleFilterChange("overallSatisfaction", value === "all" ? "" : value)}>
                 <SelectTrigger>
-                  <SelectValue placeholder="All Countries" />
+                  <SelectValue placeholder="All Ratings" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Countries</SelectItem>
-                  {uniqueCountries.map((country) => (
-                    <SelectItem key={country} value={country}>
-                      {country}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Source/Event Filter */}
-            <div className="space-y-2">
-              <Label>Source/Event</Label>
-              <Select value={filters.sourceEvent || "all"} onValueChange={(value) => handleFilterChange("sourceEvent", value === "all" ? "" : value)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="All Sources" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Sources</SelectItem>
-                  {uniqueSourceEvents.map((source) => (
-                    <SelectItem key={source} value={source}>
-                      {source}
-                    </SelectItem>
-                  ))}
+                  <SelectItem value="all">All Ratings</SelectItem>
+                  <SelectItem value="5">5 Stars</SelectItem>
+                  <SelectItem value="4">4 Stars</SelectItem>
+                  <SelectItem value="3">3 Stars</SelectItem>
+                  <SelectItem value="2">2 Stars</SelectItem>
+                  <SelectItem value="1">1 Star</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -332,7 +334,7 @@ export default function AdminPage() {
 
             {/* Date Range */}
             <div className="space-y-4">
-              <Label>Registration Date</Label>
+              <Label>Submission Date</Label>
               <div className="space-y-2">
                 <div>
                   <Label htmlFor="dateFrom" className="text-sm text-muted-foreground">From</Label>
@@ -379,9 +381,9 @@ export default function AdminPage() {
                   Filters
                 </Button>
                 <div>
-                  <h1 className="text-3xl font-bold">Registration Admin</h1>
+                  <h1 className="text-3xl font-bold">Service Feedback Admin</h1>
                   <p className="text-muted-foreground">
-                    Showing {filteredRegistrations.length} of {registrations.length} registrations
+                    Showing {filteredFeedbacks.length} of {feedbacks.length} feedback submissions
                     {hasActiveFilters && (
                       <Badge variant="secondary" className="ml-2">
                         Filtered
@@ -396,11 +398,11 @@ export default function AdminPage() {
             </div>
 
             <div className="grid gap-4">
-              {filteredRegistrations.length === 0 ? (
+              {filteredFeedbacks.length === 0 ? (
                 <Card>
                   <CardContent className="p-6 text-center">
                     <p className="text-muted-foreground">
-                      {hasActiveFilters ? "No registrations match your filters." : "No registrations found."}
+                      {hasActiveFilters ? "No feedback matches your filters." : "No feedback found."}
                     </p>
                     {hasActiveFilters && (
                       <Button onClick={clearFilters} variant="outline" className="mt-2">
@@ -410,71 +412,128 @@ export default function AdminPage() {
                   </CardContent>
                 </Card>
               ) : (
-                filteredRegistrations.map((registration) => (
-                  <Card key={registration.id} className="w-full">
+                filteredFeedbacks.map((feedback) => (
+                  <Card key={feedback.id} className="w-full">
                     <CardHeader>
                       <div className="flex justify-between items-start">
                         <div>
-                          <CardTitle className="text-xl">{registration.name}</CardTitle>
+                          <CardTitle className="text-xl">
+                            {feedback.customerName || "Anonymous Customer"}
+                          </CardTitle>
                           <CardDescription>
-                            {registration.jobTitle} at {registration.companyName}
+                            {feedback.companyName && `${feedback.companyName} • `}
+                            Service Date: {feedback.serviceDate}
                           </CardDescription>
                         </div>
-                        <div className="flex gap-2">
-                          {registration.followUp && (
+                        <div className="flex gap-2 flex-col items-end">
+                          {feedback.followUpRequested && (
                             <Badge variant="secondary">Follow-up Requested</Badge>
                           )}
                           <Badge variant="outline">
-                            {formatDate(registration.createdAt)}
+                            {formatDate(feedback.createdAt)}
                           </Badge>
+                          <div className="text-right">
+                            {renderStars(feedback.overallSatisfaction)}
+                          </div>
                         </div>
                       </div>
                     </CardHeader>
                     <CardContent>
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        <div>
-                          <h4 className="font-semibold text-sm text-muted-foreground">Contact</h4>
-                          <p className="text-sm">{registration.email}</p>
-                          <p className="text-sm">{registration.mobileNumber}</p>
-                          {registration.officePhone && (
-                            <p className="text-sm">Office: {registration.officePhone}</p>
-                          )}
-                          {registration.website && (
-                            <p className="text-sm">
-                              <a 
-                                href={registration.website} 
-                                target="_blank" 
-                                rel="noopener noreferrer"
-                                className="text-blue-600 hover:underline"
-                              >
-                                {registration.website}
-                              </a>
-                            </p>
-                          )}
-                        </div>
-                        
-                        <div>
-                          <h4 className="font-semibold text-sm text-muted-foreground">Company Info</h4>
-                          <p className="text-sm">Industry: {registration.industry}</p>
-                          <p className="text-sm">Country: {registration.country}</p>
-                          <p className="text-sm">Source: {registration.sourceEvent}</p>
-                        </div>
-                        
-                        <div>
-                          <h4 className="font-semibold text-sm text-muted-foreground">Address</h4>
-                          <p className="text-sm">{registration.officeAddress}</p>
-                          {registration.followUpDate && (
-                            <p className="text-sm mt-2">
-                              <span className="font-medium">Follow-up Date:</span> {registration.followUpDate}
-                            </p>
+                      {/* Service Types */}
+                      <div className="mb-4">
+                        <h4 className="font-semibold text-sm text-muted-foreground mb-2">Services Used</h4>
+                        <div className="flex flex-wrap gap-2">
+                          {feedback.serviceType.map((type, index) => (
+                            <Badge key={index} variant="outline">
+                              {serviceTypeOptions.find(opt => opt.value === type)?.label || type}
+                            </Badge>
+                          ))}
+                          {feedback.serviceTypeOther && (
+                            <Badge variant="outline">{feedback.serviceTypeOther}</Badge>
                           )}
                         </div>
                       </div>
-                      
-                      {registration.comment && (
+
+                      {/* Contact Information */}
+                      {feedback.contactInfo && (
+                        <div className="mb-4">
+                          <h4 className="font-semibold text-sm text-muted-foreground mb-2">Contact</h4>
+                          <p className="text-sm">{feedback.contactInfo}</p>
+                        </div>
+                      )}
+
+                      {/* Service Ratings */}
+                      <div className="mb-4">
+                        <h4 className="font-semibold text-sm text-muted-foreground mb-2">Service Ratings</h4>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 text-sm">
+                          <div className="flex justify-between">
+                            <span>Ease of Ordering:</span>
+                            {renderStars(feedback.easeOfOrdering)}
+                          </div>
+                          <div className="flex justify-between">
+                            <span>Order Accuracy:</span>
+                            {renderStars(feedback.orderProcessingAccuracy)}
+                          </div>
+                          <div className="flex justify-between">
+                            <span>Timeliness:</span>
+                            {renderStars(feedback.serviceTimeliness)}
+                          </div>
+                          <div className="flex justify-between">
+                            <span>Product Quality:</span>
+                            {renderStars(feedback.productQuality)}
+                          </div>
+                          <div className="flex justify-between">
+                            <span>Staff Professionalism:</span>
+                            {renderStars(feedback.staffProfessionalism)}
+                          </div>
+                          <div className="flex justify-between">
+                            <span>Responsiveness:</span>
+                            {renderStars(feedback.responsiveness)}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Feedback Comments */}
+                      <div className="space-y-3">
+                        {feedback.mostLiked && (
+                          <div>
+                            <h4 className="font-semibold text-sm text-muted-foreground mb-1">What they liked most:</h4>
+                            <p className="text-sm bg-green-50 dark:bg-green-900/20 p-3 rounded-md">{feedback.mostLiked}</p>
+                          </div>
+                        )}
+                        
+                        {feedback.improvementAreas && (
+                          <div>
+                            <h4 className="font-semibold text-sm text-muted-foreground mb-1">Areas for improvement:</h4>
+                            <p className="text-sm bg-yellow-50 dark:bg-yellow-900/20 p-3 rounded-md">{feedback.improvementAreas}</p>
+                          </div>
+                        )}
+                        
+                        {feedback.issuesExperienced && (
+                          <div>
+                            <h4 className="font-semibold text-sm text-muted-foreground mb-1">Issues experienced:</h4>
+                            <p className="text-sm bg-red-50 dark:bg-red-900/20 p-3 rounded-md">{feedback.issuesExperienced}</p>
+                          </div>
+                        )}
+                        
+                        {feedback.wouldRecommend && (
+                          <div>
+                            <h4 className="font-semibold text-sm text-muted-foreground mb-1">Would recommend:</h4>
+                            <p className="text-sm bg-blue-50 dark:bg-blue-900/20 p-3 rounded-md">{feedback.wouldRecommend}</p>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Follow-up Information */}
+                      {feedback.followUpRequested && (
                         <div className="mt-4 pt-4 border-t">
-                          <h4 className="font-semibold text-sm text-muted-foreground mb-2">Comments</h4>
-                          <p className="text-sm bg-muted p-3 rounded-md">{registration.comment}</p>
+                          <h4 className="font-semibold text-sm text-muted-foreground mb-2">Follow-up Details</h4>
+                          <div className="text-sm">
+                            <p><span className="font-medium">Preferred Contact:</span> {feedback.preferredContactMethod || "Not specified"}</p>
+                            {feedback.preferredContactOther && (
+                              <p><span className="font-medium">Other Contact Method:</span> {feedback.preferredContactOther}</p>
+                            )}
+                          </div>
                         </div>
                       )}
                     </CardContent>
