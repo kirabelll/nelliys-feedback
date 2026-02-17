@@ -15,8 +15,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Nelliys Coffee Registration",
-  description: "Registration form for Nelliys Coffee",
+  title: "Yetaf Holding Service Feedback",
+  description: "Yetaf Holding Service Feedback",
 };
 
 export default function RootLayout({

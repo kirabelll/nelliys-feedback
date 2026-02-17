@@ -140,7 +140,7 @@ export default function ServiceFeedbackForm() {
       const result = await response.json();
 
       if (!response.ok) {
-        throw new Error(result.error || "Failed to submit feedback");
+        throw new Error(result?.error || "Failed to submit feedback");
       }
 
       form.reset();
