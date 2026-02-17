@@ -18,6 +18,7 @@ import {
 import { toast } from "sonner";
 import Header from "./header";
 import UIFeedbackForm from "@/components/ui-feedback-form";
+import ServiceFeedbackForm from "@/components/service-feedback-form";
 
 const formSchema = z.object({
   comment: z
@@ -83,7 +84,7 @@ export default function Home() {
       <div className="flex items-center justify-center p-4">
         <div className="w-full max-w-6xl mx-auto space-y-8">
           {/* Registration Form */}
-          <Card className="w-full max-w-2xl mx-auto rounded-sm">
+          {/* <Card className="w-full max-w-2xl mx-auto rounded-sm">
             <CardHeader>
               <CardTitle>Quick Feedback</CardTitle>
               <CardDescription>
@@ -128,11 +129,11 @@ export default function Home() {
                 </form>
               </Form>
             </CardContent>
-          </Card>
+          </Card> */}
 
-          {/* Event Feedback Form */}
-          <div className="w-full max-w-2xl mx-auto">
-            <UIFeedbackForm />
+          {/* Service Feedback Form */}
+          <div className="w-full">
+            <ServiceFeedbackForm />
           </div>
         </div>
       </div>

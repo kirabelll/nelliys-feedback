@@ -1,5 +1,11 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
+## Developer Profile
+
+**ERP Developer | Frappe & Odoo Specialist**
+
+Experienced ERP developer with deep expertise in Frappe Framework and Odoo customization. Specialized in building scalable business solutions, custom modules, and seamless integrations. Proficient in Python, JavaScript, and modern web technologies. Passionate about optimizing business processes through innovative ERP implementations.
+
 ## Getting Started
 
 First, run the development server:

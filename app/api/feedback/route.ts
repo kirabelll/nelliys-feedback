@@ -38,6 +38,49 @@ const feedbackSchema = z.object({
   priority: z.enum(["URGENT", "HIGH", "MEDIUM", "LOW"]).optional(),
 });
 
+const serviceFeedbackSchema = z.object({
+  // Section 1: Customer Information
+  customerName: z.string().optional(),
+  companyName: z.string().optional(),
+  contactInfo: z.string().optional(),
+  serviceDate: z.string().min(1, "Service date is required"),
+  serviceType: z.array(z.string()).min(1, "Please select at least one service type"),
+  serviceTypeOther: z.string().optional(),
+
+  // Section 2: Service Quality Ratings (1-5 scale)
+  easeOfOrdering: z.number().min(1).max(5),
+  orderProcessingAccuracy: z.number().min(1).max(5),
+  orderChannelKnowledge: z.number().min(1).max(5),
+  serviceTimeliness: z.number().min(1).max(5),
+  orderAccuracy: z.number().min(1).max(5),
+  productQuality: z.number().min(1).max(5),
+  quantityAccuracy: z.number().min(1).max(5),
+  staffProfessionalism: z.number().min(1).max(5),
+  responsiveness: z.number().min(1).max(5),
+  overallSatisfaction: z.number().min(1).max(5),
+  priceCompetitiveness: z.number().min(1).max(5),
+  stockAvailability: z.number().min(1).max(5),
+  technicalInstruction: z.number().min(1).max(5),
+
+  // Section 3: Open-Ended Questions
+  mostLiked: z.string().optional(),
+  overallExperience: z.string().optional(),
+  expectationsMet: z.string().optional(),
+  improvementAreas: z.string().optional(),
+  issuesExperienced: z.string().optional(),
+  wouldRecommend: z.string().optional(),
+
+  // Section 4: Future Expectations
+  additionalServices: z.string().optional(),
+  futureExpectations: z.string().optional(),
+  serviceQualityRecommendations: z.string().optional(),
+
+  // Section 5: Follow-Up
+  followUpRequested: z.boolean().default(false),
+  preferredContactMethod: z.string().optional(),
+  preferredContactOther: z.string().optional(),
+});
+
 // Retry function for database operations
 async function withRetry<T>(operation: () => Promise<T>, maxRetries = 3): Promise<T> {
   let lastError: Error;
@@ -70,45 +113,98 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     
-    // Validate the request body
-    const validatedData = feedbackSchema.parse(body);
+    // Detect which type of feedback this is based on the presence of service-specific fields
+    const isServiceFeedback = 'serviceDate' in body && 'easeOfOrdering' in body;
     
-    // Create new feedback with retry
-    const feedback = await withRetry(() =>
-      prisma.uIFeedback.create({
-        data: {
-          userName: validatedData.userName || null,
-          userEmail: validatedData.userEmail || null,
-          userRole: validatedData.userRole || null,
-          pageUrl: validatedData.pageUrl || null,
-          componentName: validatedData.componentName || null,
-          browserInfo: validatedData.browserInfo || null,
-          deviceType: validatedData.deviceType || null,
-          screenResolution: validatedData.screenResolution || null,
-          feedbackType: validatedData.feedbackType || "OTHER",
-          severity: validatedData.severity || null,
-          title: validatedData.title || "Untitled Feedback",
-          description: validatedData.description || "",
-          stepsToReproduce: validatedData.stepsToReproduce || null,
-          expectedBehavior: validatedData.expectedBehavior || null,
-          actualBehavior: validatedData.actualBehavior || null,
-          usabilityRating: validatedData.usabilityRating || null,
-          designRating: validatedData.designRating || null,
-          performanceRating: validatedData.performanceRating || null,
-          overallRating: validatedData.overallRating || null,
-          tags: validatedData.tags || [],
-          priority: validatedData.priority || null,
+    if (isServiceFeedback) {
+      // Handle service feedback
+      const validatedData = serviceFeedbackSchema.parse(body);
+      
+      const serviceFeedback = await withRetry(() =>
+        prisma.serviceFeedback.create({
+          data: {
+            customerName: validatedData.customerName || null,
+            companyName: validatedData.companyName || null,
+            contactInfo: validatedData.contactInfo || null,
+            serviceDate: validatedData.serviceDate,
+            serviceType: validatedData.serviceType,
+            serviceTypeOther: validatedData.serviceTypeOther || null,
+            easeOfOrdering: validatedData.easeOfOrdering,
+            orderProcessingAccuracy: validatedData.orderProcessingAccuracy,
+            orderChannelKnowledge: validatedData.orderChannelKnowledge,
+            serviceTimeliness: validatedData.serviceTimeliness,
+            orderAccuracy: validatedData.orderAccuracy,
+            productQuality: validatedData.productQuality,
+            quantityAccuracy: validatedData.quantityAccuracy,
+            staffProfessionalism: validatedData.staffProfessionalism,
+            responsiveness: validatedData.responsiveness,
+            overallSatisfaction: validatedData.overallSatisfaction,
+            priceCompetitiveness: validatedData.priceCompetitiveness,
+            stockAvailability: validatedData.stockAvailability,
+            technicalInstruction: validatedData.technicalInstruction,
+            mostLiked: validatedData.mostLiked || null,
+            overallExperience: validatedData.overallExperience || null,
+            expectationsMet: validatedData.expectationsMet || null,
+            improvementAreas: validatedData.improvementAreas || null,
+            issuesExperienced: validatedData.issuesExperienced || null,
+            wouldRecommend: validatedData.wouldRecommend || null,
+            additionalServices: validatedData.additionalServices || null,
+            futureExpectations: validatedData.futureExpectations || null,
+            serviceQualityRecommendations: validatedData.serviceQualityRecommendations || null,
+            followUpRequested: validatedData.followUpRequested,
+            preferredContactMethod: validatedData.preferredContactMethod || null,
+            preferredContactOther: validatedData.preferredContactOther || null,
+          },
+        })
+      );
+      
+      return NextResponse.json(
+        { 
+          message: 'Service feedback submitted successfully',
+          id: serviceFeedback.id 
         },
-      })
-    );
-    
-    return NextResponse.json(
-      { 
-        message: 'Feedback submitted successfully',
-        id: feedback.id 
-      },
-      { status: 201 }
-    );
+        { status: 201 }
+      );
+    } else {
+      // Handle UI feedback
+      const validatedData = feedbackSchema.parse(body);
+      
+      const feedback = await withRetry(() =>
+        prisma.uIFeedback.create({
+          data: {
+            userName: validatedData.userName || null,
+            userEmail: validatedData.userEmail || null,
+            userRole: validatedData.userRole || null,
+            pageUrl: validatedData.pageUrl || null,
+            componentName: validatedData.componentName || null,
+            browserInfo: validatedData.browserInfo || null,
+            deviceType: validatedData.deviceType || null,
+            screenResolution: validatedData.screenResolution || null,
+            feedbackType: validatedData.feedbackType || "OTHER",
+            severity: validatedData.severity || null,
+            title: validatedData.title || "Untitled Feedback",
+            description: validatedData.description || "",
+            stepsToReproduce: validatedData.stepsToReproduce || null,
+            expectedBehavior: validatedData.expectedBehavior || null,
+            actualBehavior: validatedData.actualBehavior || null,
+            usabilityRating: validatedData.usabilityRating || null,
+            designRating: validatedData.designRating || null,
+            performanceRating: validatedData.performanceRating || null,
+            overallRating: validatedData.overallRating || null,
+            tags: validatedData.tags || [],
+            priority: validatedData.priority || null,
+          },
+        })
+      );
+      
+      return NextResponse.json(
+        { 
+          message: 'Feedback submitted successfully',
+          id: feedback.id 
+        },
+        { status: 201 }
+      );
+    }
     
   } catch (error) {
     console.error('Feedback submission error:', error);
@@ -132,17 +228,27 @@ export async function POST(request: NextRequest) {
 
 export async function GET() {
   try {
-    const feedback = await withRetry(() =>
-      prisma.uIFeedback.findMany({
-        orderBy: { createdAt: 'desc' },
-        include: {
-          responses: true,
-          votes: true,
-        },
-      })
-    );
+    const [uiFeedback, serviceFeedback] = await Promise.all([
+      withRetry(() =>
+        prisma.uIFeedback.findMany({
+          orderBy: { createdAt: 'desc' },
+          include: {
+            responses: true,
+            votes: true,
+          },
+        })
+      ),
+      withRetry(() =>
+        prisma.serviceFeedback.findMany({
+          orderBy: { createdAt: 'desc' },
+        })
+      )
+    ]);
     
-    return NextResponse.json(feedback);
+    return NextResponse.json({
+      uiFeedback,
+      serviceFeedback,
+    });
   } catch (error) {
     console.error('Error fetching feedback:', error);
     return NextResponse.json(

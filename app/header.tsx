@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { ModeToggle } from "@/app/mode-toggle";
 
 export default function Header() {
-  const links = [{ to: "/", label: "Nelliys Coffee" }] as const;
+  const links = [{ to: "/", label: "Service Feedback" }] as const;
 
   return (
     <div>
@@ -13,7 +13,7 @@ export default function Header() {
           {links.map(({ to, label }) => {
             return (
               <Link key={to} href={to}>
-                {label}
+                {label} 
               </Link>
             );
           })}

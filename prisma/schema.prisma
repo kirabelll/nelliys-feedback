@@ -139,6 +139,80 @@ enum VoteType {
   DOWNVOTE
 }
 
+model Registration {
+  id            String   @id @default(cuid())
+  name          String?
+  companyName   String?
+  jobTitle      String?
+  mobileNumber  String?
+  officePhone   String?
+  email         String?  @unique
+  website       String?
+  officeAddress String?
+  country       String?
+  industry      String?
+  sourceEvent   String?
+  followUpDate  String?
+  followUp      Boolean  @default(false)
+  comment       String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("registrations")
+}
+
+model ServiceFeedback {
+  id                        String   @id @default(cuid())
+  
+  // Section 1: Customer Information
+  customerName              String?
+  companyName               String?
+  contactInfo               String?
+  serviceDate               String
+  serviceType               String[] // Array of selected service types
+  serviceTypeOther          String?
+  
+  // Section 2: Service Quality Ratings (1-5 scale)
+  easeOfOrdering            Int
+  orderProcessingAccuracy   Int
+  orderChannelKnowledge     Int
+  serviceTimeliness         Int
+  orderAccuracy             Int
+  productQuality            Int
+  quantityAccuracy          Int
+  staffProfessionalism      Int
+  responsiveness            Int
+  overallSatisfaction       Int
+  priceCompetitiveness      Int
+  stockAvailability         Int
+  technicalInstruction      Int
+  
+  // Section 3: Open-Ended Questions
+  mostLiked                 String?
+  overallExperience         String?
+  expectationsMet           String?
+  improvementAreas          String?
+  issuesExperienced         String?
+  wouldRecommend            String?
+  
+  // Section 4: Future Expectations
+  additionalServices        String?
+  futureExpectations        String?
+  serviceQualityRecommendations String?
+  
+  // Section 5: Follow-Up
+  followUpRequested         Boolean  @default(false)
+  preferredContactMethod    String?
+  preferredContactOther     String?
+  
+  // Metadata
+  submissionDate            DateTime @default(now())
+  createdAt                 DateTime @default(now())
+  updatedAt                 DateTime @updatedAt
+
+  @@map("service_feedback")
+}
+
 model Feedback {
   id          String   @id @default(cuid())
   name        String?
